@@ -1,0 +1,22 @@
+[
+{"id":"book-01","title":"The Pragmatic Programmer","author":"Andrew Hunt","category":"Technology","pageCount":352,"notes":"Build better software."},
+{"id":"book-02","title":"Clean Code","author":"Robert C. Martin","category":"Technology","pageCount":464,"notes":"Readable code matters."},
+{"id":"book-03","title":"Kotlin in Action","author":"Dmitry Jemerov","category":"Technology","pageCount":360,"notes":""},
+{"id":"book-04","title":"Atomic Habits","author":"James Clear","category":"Personal Growth","pageCount":320,"notes":""},
+{"id":"book-05","title":"Deep Work","author":"Cal Newport","category":"Personal Growth","pageCount":304,"notes":""},
+{"id":"book-06","title":"The Hobbit","author":"J. R. R. Tolkien","category":"Fantasy","pageCount":310,"notes":""},
+{"id":"book-07","title":"Dune","author":"Frank Herbert","category":"Science Fiction","pageCount":688,"notes":""},
+{"id":"book-08","title":"The Name of the Wind","author":"Patrick Rothfuss","category":"Fantasy","pageCount":662,"notes":""},
+{"id":"book-09","title":"Pride and Prejudice","author":"Jane Austen","category":"Classics","pageCount":279,"notes":""},
+{"id":"book-10","title":"1984","author":"George Orwell","category":"Classics","pageCount":328,"notes":""},
+{"id":"book-11","title":"Sapiens","author":"Yuval Noah Harari","category":"History","pageCount":498,"notes":""},
+{"id":"book-12","title":"Educated","author":"Tara Westover","category":"Biography","pageCount":352,"notes":""},
+{"id":"book-13","title":"The Design of Everyday Things","author":"Don Norman","category":"Design","pageCount":368,"notes":""},
+{"id":"book-14","title":"Thinking, Fast and Slow","author":"Daniel Kahneman","category":"Psychology","pageCount":512,"notes":""},
+{"id":"book-15","title":"The Alchemist","author":"Paulo Coelho","category":"Fiction","pageCount":208,"notes":""},
+{"id":"book-16","title":"The Little Prince","author":"Antoine de Saint-Exupery","category":"Fiction","pageCount":96,"notes":""},
+{"id":"book-17","title":"A Brief History of Time","author":"Stephen Hawking","category":"Science","pageCount":256,"notes":""},
+{"id":"book-18","title":"The Martian","author":"Andy Weir","category":"Science Fiction","pageCount":384,"notes":""},
+{"id":"book-19","title":"The Lord of the Rings","author":"J. R. R. Tolkien","category":"Fantasy","pageCount":1178,"notes":""},
+{"id":"book-20","title":"Design Patterns","author":"Erich Gamma","category":"Technology","pageCount":395,"notes":""}
+]

@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application android:name=".bookshelf.BookshelfApplication" android:allowBackup="true" android:label="BookShelf" android:icon="@drawable/ic_mountain" android:supportsRtl="true" android:theme="@style/Theme.TrailLog">
+        <activity android:name=".bookshelf.ui.BookDetailActivity" android:exported="false"/>
+        <activity android:name=".bookshelf.ui.EditBookActivity" android:exported="false"/>
+        <activity android:name=".bookshelf.ui.CategoriesActivity" android:exported="false"/>
+        <activity android:name=".bookshelf.ui.StatisticsActivity" android:exported="false"/>
+        <activity android:name=".bookshelf.ui.BookSettingsActivity" android:exported="false"/>
+        <activity android:name=".ui.EditTrailActivity" android:exported="false" android:parentActivityName=".ui.MainActivity"/>
+        <activity android:name=".ui.SettingsActivity" android:exported="false" android:parentActivityName=".ui.MainActivity"/>
+        <activity android:name=".ui.TrailDetailActivity" android:exported="false" android:parentActivityName=".ui.MainActivity"/>
+        <activity android:name=".bookshelf.ui.BookShelfActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
