@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Styles used by the reading sessions & statistics screens (kept apart from themes.xml to avoid merge conflicts). -->
+<resources>
+    <!-- One "label: value" line on the statistics screen. -->
+    <!-- parent="" is required: a dotted name otherwise implies a parent style named "BookShelf". -->
+    <style name="BookShelf.StatLine" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:paddingVertical">4dp</item>
+        <item name="android:textSize">17sp</item>
+    </style>
+</resources>

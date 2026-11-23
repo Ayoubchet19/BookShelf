@@ -16,7 +16,9 @@ private val Application.dataStore by preferencesDataStore("bookshelf_preferences
 class BookshelfApplication : Application() {
     private val database by lazy { Room.databaseBuilder(this, BookDatabase::class.java, "bookshelf.db").build() }
     val repository by lazy { BookRepository(database, this) }
-    val preferences = object : fr.estiam.traillog.bookshelf.ui.BookshelfPreferences {
+    // Must be lazy: the DataStore delegate needs applicationContext, which is still null
+    // while the Application constructor runs (eager init crashed the app on launch, see docs/BUGS.md).
+    val preferences: fr.estiam.traillog.bookshelf.ui.BookshelfPreferences by lazy { object : fr.estiam.traillog.bookshelf.ui.BookshelfPreferences {
         override val flow = dataStore.data.map { values ->
             UserPreferences(
                 sort = values[stringPreferencesKey("sort")] ?: "TITLE",
@@ -27,5 +29,5 @@ class BookshelfApplication : Application() {
         override suspend fun setSort(value: String) { dataStore.edit { it[stringPreferencesKey("sort")] = value } }
         override suspend fun setDarkMode(value: Boolean) { dataStore.edit { it[booleanPreferencesKey("dark_mode")] = value } }
         override suspend fun setShowCompleted(value: Boolean) { dataStore.edit { it[booleanPreferencesKey("show_completed")] = value } }
-    }
+    } }
 }

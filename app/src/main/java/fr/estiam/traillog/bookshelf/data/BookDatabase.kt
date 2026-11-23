@@ -65,6 +65,11 @@ interface BookDao {
     @Query("SELECT COUNT(*) FROM books WHERE isCompleted = 1") fun completedCount(): Flow<Int>
     @Query("SELECT COUNT(*) FROM books WHERE isFavorite = 1") fun favoriteCount(): Flow<Int>
     @Query("SELECT COALESCE(SUM(pagesRead), 0) FROM books") fun pagesRead(): Flow<Int>
+
+    /** All books with their category, used by the statistics screen. */
+    @Transaction
+    @Query("SELECT * FROM books ORDER BY title COLLATE NOCASE")
+    fun observeAllWithCategory(): Flow<List<BookWithCategory>>
 }
 
 @Dao
@@ -79,6 +84,13 @@ interface ReadingSessionDao {
     @Query("SELECT * FROM reading_sessions WHERE bookId = :bookId ORDER BY startedAt DESC")
     fun observeForBook(bookId: String): Flow<List<ReadingSessionEntity>>
     @Insert suspend fun insert(session: ReadingSessionEntity)
+    @Update suspend fun update(session: ReadingSessionEntity)
+    @Query("DELETE FROM reading_sessions WHERE id = :id") suspend fun deleteById(id: String)
+    @Query("SELECT * FROM reading_sessions WHERE id = :id LIMIT 1") suspend fun findById(id: String): ReadingSessionEntity?
+    /** Snapshot of a book's sessions, read inside transactions to recompute progress. */
+    @Query("SELECT * FROM reading_sessions WHERE bookId = :bookId") suspend fun listForBook(bookId: String): List<ReadingSessionEntity>
+    /** Every session, newest first, used by the statistics screen (speed, streak, minutes per category). */
+    @Query("SELECT * FROM reading_sessions ORDER BY startedAt DESC") fun observeAll(): Flow<List<ReadingSessionEntity>>
     @Query("SELECT COALESCE(SUM(durationMinutes), 0) FROM reading_sessions") fun totalMinutes(): Flow<Int>
 }
 

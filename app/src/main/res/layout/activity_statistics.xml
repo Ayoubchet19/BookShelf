@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Statistics screen. The summary lines are a fixed block; the category breakdown is a RecyclerView. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/stats_title" android:textSize="24sp" android:textStyle="bold"/>
+        <TextView android:id="@+id/stats_loading" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="12dp" android:text="@string/stats_loading"/>
+        <TextView android:id="@+id/stats_empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingVertical="12dp" android:text="@string/stats_empty" android:visibility="gone"/>
+
+        <LinearLayout android:id="@+id/stats_content" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone">
+            <TextView android:id="@+id/stats_completed" style="@style/BookShelf.StatLine"/>
+            <TextView android:id="@+id/stats_favorites" style="@style/BookShelf.StatLine"/>
+            <TextView android:id="@+id/stats_pages" style="@style/BookShelf.StatLine"/>
+            <TextView android:id="@+id/stats_minutes" style="@style/BookShelf.StatLine"/>
+            <TextView android:id="@+id/stats_speed" style="@style/BookShelf.StatLine"/>
+            <TextView android:id="@+id/stats_streak" style="@style/BookShelf.StatLine"/>
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/stats_categories" android:textSize="18sp" android:textStyle="bold"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/category_stats_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:nestedScrollingEnabled="false"/>
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
