@@ -9,6 +9,11 @@ import androidx.paging.PagingState
 import androidx.paging.LoadState
 import androidx.paging.map
 import androidx.room.withTransaction
+import fr.estiam.traillog.bookshelf.domain.SessionError
+import fr.estiam.traillog.bookshelf.domain.SessionValidationException
+import fr.estiam.traillog.bookshelf.domain.computeProgress
+import fr.estiam.traillog.bookshelf.domain.remainingPages
+import fr.estiam.traillog.bookshelf.domain.validateSession
 import fr.estiam.traillog.bookshelf.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -28,7 +33,14 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
         }.flow
 
     fun observeBook(id: String): Flow<Book?> = db.books().observeById(id).map { it?.toDomainBook() }
-    fun sessions(bookId: String) = db.sessions().observeForBook(bookId)
+    /** Sessions of one book, newest first. */
+    fun sessions(bookId: String): Flow<List<ReadingSession>> = db.sessions().observeForBook(bookId).map { it.map { s -> s.toDomain() } }
+
+    /** Every book with its category name (statistics screen). */
+    val allBooks: Flow<List<Book>> = db.books().observeAllWithCategory().map { it.map { b -> b.toDomainBook() } }
+
+    /** Every reading session, newest first (statistics screen). */
+    val allSessions: Flow<List<ReadingSession>> = db.sessions().observeAll().map { it.map { s -> s.toDomain() } }
 
     suspend fun save(book: Book) {
         require(book.isValid()) { "Book information is invalid" }
@@ -41,15 +53,64 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
         db.categories().insert(CategoryEntity(name.trim().lowercase().replace(" ", "_"), name.trim()))
     }
 
-    suspend fun addSession(bookId: String, pages: Int, minutes: Int) {
-        require(pages > 0 && minutes > 0) { "Session values must be positive" }
+    /**
+     * Records a reading session and updates the book's progress in one transaction.
+     * Rules: the book must exist, pages > 0, minutes > 0 and pages <= remaining pages.
+     * @throws SessionValidationException when a rule is broken (nothing is written).
+     * @return the id of the new session.
+     */
+    suspend fun addSession(bookId: String, pages: Int, minutes: Int, startedAt: Long = System.currentTimeMillis()): String =
         db.withTransaction {
-            db.sessions().insert(ReadingSessionEntity(UUID.randomUUID().toString(), bookId, pages, minutes, System.currentTimeMillis()))
-            db.books().findById(bookId)?.let { book ->
-                val read = (book.pagesRead + pages).coerceAtMost(book.pageCount)
-                db.books().upsert(book.copy(pagesRead = read, isCompleted = read == book.pageCount))
-            }
+            val book = db.books().findById(bookId) ?: throw SessionValidationException(SessionError.BOOK_NOT_FOUND)
+            val existing = db.sessions().listForBook(bookId).map { it.toDomain() }
+            checkSession(pages, minutes, book, existing)
+            val session = ReadingSessionEntity(UUID.randomUUID().toString(), bookId, pages, minutes, startedAt)
+            db.sessions().insert(session)
+            recalculateProgress(book)
+            session.id
         }
+
+    /**
+     * Changes the pages and minutes of an existing session (its date is kept) and
+     * recomputes the book's progress in the same transaction. The page limit is the
+     * book's remaining pages plus the pages this session already counted.
+     * @throws SessionValidationException when a rule is broken (nothing is written).
+     */
+    suspend fun updateSession(sessionId: String, pages: Int, minutes: Int) {
+        db.withTransaction {
+            val session = db.sessions().findById(sessionId) ?: throw SessionValidationException(SessionError.SESSION_NOT_FOUND)
+            val book = db.books().findById(session.bookId) ?: throw SessionValidationException(SessionError.BOOK_NOT_FOUND)
+            val others = db.sessions().listForBook(book.id).filter { it.id != sessionId }.map { it.toDomain() }
+            checkSession(pages, minutes, book, others)
+            db.sessions().update(session.copy(pagesRead = pages, durationMinutes = minutes))
+            recalculateProgress(book)
+        }
+    }
+
+    /**
+     * Deletes a session and recomputes the book's progress in the same transaction.
+     * A completed book goes back to "in progress" when its pages are no longer all covered.
+     * @throws SessionValidationException when the session does not exist.
+     */
+    suspend fun deleteSession(sessionId: String) {
+        db.withTransaction {
+            val session = db.sessions().findById(sessionId) ?: throw SessionValidationException(SessionError.SESSION_NOT_FOUND)
+            db.sessions().deleteById(sessionId)
+            db.books().findById(session.bookId)?.let { recalculateProgress(it) }
+        }
+    }
+
+    private fun checkSession(pages: Int, minutes: Int, book: BookEntity, otherSessions: List<ReadingSession>) {
+        val alreadyRead = computeProgress(book.pageCount, otherSessions).pagesRead
+        validateSession(pages, minutes, book.pageCount, alreadyRead)?.let { error ->
+            throw SessionValidationException(error, remainingPages(book.pageCount, alreadyRead))
+        }
+    }
+
+    /** Must be called inside db.withTransaction: pagesRead = capped sum of the book's sessions. */
+    private suspend fun recalculateProgress(book: BookEntity) {
+        val progress = computeProgress(book.pageCount, db.sessions().listForBook(book.id).map { it.toDomain() })
+        db.books().upsert(book.copy(pagesRead = progress.pagesRead, isCompleted = progress.isCompleted))
     }
 
     suspend fun seedIfNeeded() {
@@ -82,6 +143,8 @@ private class BookPagingSource(private val source: PagingSource<Int, BookWithCat
     }
     override fun getRefreshKey(state: PagingState<Int, Book>) = state.anchorPosition
 }
+
+private fun ReadingSessionEntity.toDomain() = ReadingSession(id, bookId, pagesRead, durationMinutes, startedAt)
 
 private fun BookWithCategory.toDomainBook() = Book(book.id, book.title, book.author, book.categoryId, category.name,
     book.pageCount, book.pagesRead, book.isFavorite, book.isCompleted, book.notes)
