@@ -49,8 +49,12 @@ interface BookDao {
         WHERE (:query = '' OR title LIKE '%' || :query || '%' OR author LIKE '%' || :query || '%')
         AND (:favoritesOnly = 0 OR isFavorite = 1)
         AND (:completedOnly = 0 OR isCompleted = 1)
-        ORDER BY CASE WHEN :sort = 'AUTHOR' THEN author ELSE title END COLLATE NOCASE""")
-    fun page(query: String, favoritesOnly: Boolean, completedOnly: Boolean, sort: String): PagingSource<Int, BookWithCategory>
+        AND (:hideCompleted = 0 OR isCompleted = 0)
+        ORDER BY
+            CASE WHEN :sort = 'PROGRESS' THEN CAST(pagesRead AS REAL) / pageCount END DESC,
+            CASE WHEN :sort = 'AUTHOR' THEN author ELSE title END COLLATE NOCASE,
+            id""")
+    fun page(query: String, favoritesOnly: Boolean, completedOnly: Boolean, hideCompleted: Boolean, sort: String): PagingSource<Int, BookWithCategory>
 
     @Transaction
     @Query("SELECT * FROM books WHERE id = :id LIMIT 1")
@@ -60,6 +64,9 @@ interface BookDao {
     suspend fun findById(id: String): BookEntity?
 
     @Upsert suspend fun upsert(book: BookEntity)
+    /** Used by the JSON import: an existing row (same id) is kept as it is, never overwritten. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insertIgnore(book: BookEntity)
+    @Query("SELECT id FROM books") suspend fun allIds(): List<String>
     @Query("DELETE FROM books WHERE id = :id") suspend fun deleteById(id: String)
     @Query("SELECT COUNT(*) FROM books") suspend fun count(): Int
     @Query("SELECT COUNT(*) FROM books WHERE isCompleted = 1") fun completedCount(): Flow<Int>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TrailLog</string>
+    <string name="app_name">BookShelf</string>
     <string name="all_trails">Randonnées</string>
     <string name="favorites">Favoris</string>
     <string name="settings">Paramètres</string>
@@ -95,4 +95,19 @@
     <string name="stats_category_details">%1$d livre(s) · %2$d pages · %3$d min</string>
     <string name="stats_empty">Aucune statistique pour l’instant. Enregistrez une session de lecture depuis un livre.</string>
     <string name="stats_loading">Chargement des statistiques…</string>
+
+    <!-- États du catalogue -->
+    <string name="catalogue_empty">Votre bibliothèque est vide. Appuyez sur + pour ajouter un livre.</string>
+    <string name="catalogue_empty_filtered">Aucun livre ne correspond à la recherche ou aux filtres. Les livres terminés sont peut-être masqués dans les paramètres.</string>
+    <string name="catalogue_error">Impossible de charger le catalogue. Réessayez.</string>
+
+    <!-- Paramètres (Preferences DataStore) -->
+    <string name="pref_title">Paramètres</string>
+    <string name="pref_dark_mode">Mode sombre</string>
+    <string name="pref_show_completed">Afficher les livres terminés</string>
+    <string name="pref_sort">Trier le catalogue par</string>
+    <string name="pref_sort_title">Titre</string>
+    <string name="pref_sort_author">Auteur</string>
+    <string name="pref_sort_progress">Progression (la plus élevée d’abord)</string>
+    <string name="pref_saved_hint">Les changements sont enregistrés automatiquement et conservés après un redémarrage.</string>
 </resources>

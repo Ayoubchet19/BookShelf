@@ -1,6 +1,7 @@
 package fr.estiam.traillog.bookshelf.data
 
 import android.content.Context
+import android.util.Log
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
@@ -9,15 +10,24 @@ import androidx.paging.PagingState
 import androidx.paging.LoadState
 import androidx.paging.map
 import androidx.room.withTransaction
+import fr.estiam.traillog.bookshelf.domain.RawBookRecord
 import fr.estiam.traillog.bookshelf.domain.SessionError
 import fr.estiam.traillog.bookshelf.domain.SessionValidationException
+import fr.estiam.traillog.bookshelf.domain.categoryIdOf
 import fr.estiam.traillog.bookshelf.domain.computeProgress
+import fr.estiam.traillog.bookshelf.domain.planImport
 import fr.estiam.traillog.bookshelf.domain.remainingPages
 import fr.estiam.traillog.bookshelf.domain.validateSession
 import fr.estiam.traillog.bookshelf.model.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 // Book form & categories
 import fr.estiam.traillog.bookshelf.domain.BookFormInput
@@ -39,9 +49,13 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
     val pagesRead = db.books().pagesRead()
     val totalMinutes = db.sessions().totalMinutes()
 
-    fun books(query: String, favorites: Boolean, completed: Boolean, sort: String): Flow<PagingData<Book>> =
+    /**
+     * Main catalogue, paged by 20. [hideCompleted] comes from the "Show completed books"
+     * preference; [sort] is one of the SortOrder values.
+     */
+    fun books(query: String, favorites: Boolean, completed: Boolean, sort: String, hideCompleted: Boolean = false): Flow<PagingData<Book>> =
         Pager(PagingConfig(pageSize = 20, enablePlaceholders = false)) {
-            BookPagingSource(db.books().page(query, favorites, completed, sort))
+            BookPagingSource(db.books().page(query, favorites, completed, hideCompleted, sort))
         }.flow
 
     fun observeBook(id: String): Flow<Book?> = db.books().observeById(id).map { it?.toDomainBook() }
@@ -62,7 +76,7 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
     suspend fun delete(id: String) = db.books().deleteById(id)
     suspend fun addCategory(name: String) {
         require(name.isNotBlank()) { "Category name is required" }
-        db.categories().insert(CategoryEntity(name.trim().lowercase().replace(" ", "_"), name.trim()))
+        db.categories().insert(CategoryEntity(categoryIdOf(name), name.trim()))
     }
 
     // ---------------------------------------------------------------- Categories CRUD
@@ -207,22 +221,53 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
         db.books().upsert(book.copy(pagesRead = progress.pagesRead, isCompleted = progress.isCompleted))
     }
 
-    suspend fun seedIfNeeded() {
-        if (db.books().count() > 0) return
-        val json = JSONArray(context.assets.open("books.json").bufferedReader().use { it.readText() })
+    private val seedMutex = Mutex()
+
+    /**
+     * Imports assets/books.json the first time the app runs, and never again ([flag] is persisted).
+     * - Every record is validated first (domain/BookImport.kt); invalid ones are skipped and logged.
+     * - Rows are inserted with INSERT OR IGNORE, so an existing book is never overwritten.
+     * - Deleting every book later does not bring the sample books back.
+     * The mutex stops two concurrent calls (activity restarted quickly) from importing twice.
+     * @return the number of books inserted.
+     */
+    suspend fun seedIfNeeded(flag: InitialImportFlag): Int = seedMutex.withLock {
+        if (flag.isDone()) return@withLock 0
+        if (db.books().count() > 0) {
+            // Database created by a version without the flag: the user already has data.
+            flag.markDone()
+            return@withLock 0
+        }
+        val records = readBundledRecords() ?: return@withLock 0
+        val plan = planImport(records, db.books().allIds().toSet())
+        plan.rejected.forEach { Log.w(TAG, "$BOOKS_ASSET record #${it.index} (id=${it.id}) skipped: ${it.reason}") }
         db.withTransaction {
-            val categoryNames = buildSet {
-                for (i in 0 until json.length()) add(json.getJSONObject(i).getString("category"))
-            }
-            categoryNames.forEach { name -> db.categories().insert(CategoryEntity(name.lowercase().replace(" ", "_"), name)) }
-            for (i in 0 until json.length()) {
-                val item = json.getJSONObject(i)
-                val categoryId = item.getString("category").lowercase().replace(" ", "_")
-                val book = BookEntity(item.getString("id"), item.getString("title"), item.getString("author"),
-                    categoryId, item.getInt("pageCount"), 0, false, false, item.optString("notes"))
-                if (book.title.isNotBlank() && book.author.isNotBlank() && book.pageCount > 0) db.books().upsert(book)
+            plan.categories.forEach { (id, name) -> db.categories().insert(CategoryEntity(id, name)) }
+            plan.accepted.forEach { r ->
+                db.books().insertIgnore(BookEntity(r.id, r.title, r.author, r.categoryId, r.pageCount, 0, false, false, r.notes))
             }
         }
+        flag.markDone()
+        Log.i(TAG, "Initial import: ${plan.accepted.size} books inserted, ${plan.rejected.size} skipped")
+        plan.accepted.size
+    }
+
+    /** Reads the bundled file. Returns null (and logs) when it is missing or is not a JSON array. */
+    private suspend fun readBundledRecords(): List<RawBookRecord>? = withContext(Dispatchers.IO) {
+        try {
+            val json = JSONArray(context.assets.open(BOOKS_ASSET).bufferedReader().use { it.readText() })
+            (0 until json.length()).map { i -> json.optJSONObject(i).toRawRecord() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Cannot read $BOOKS_ASSET, initial import skipped", e)
+            null
+        }
+    }
+
+    companion object {
+        private const val TAG = "BookRepository"
+        const val BOOKS_ASSET = "books.json"
     }
 
     private fun Book.toEntity() = BookEntity(id, title, author, categoryId, pageCount, pagesRead, isFavorite, isCompleted, notes)
@@ -236,6 +281,14 @@ private class BookPagingSource(private val source: PagingSource<Int, BookWithCat
         is LoadResult.Invalid -> LoadResult.Invalid()
     }
     override fun getRefreshKey(state: PagingState<Int, Book>) = state.anchorPosition
+}
+
+/** Lenient JSON -> RawBookRecord: a wrong type becomes null, and planImport() then rejects the record. */
+private fun JSONObject?.toRawRecord(): RawBookRecord {
+    if (this == null) return RawBookRecord(null, null, null, null, null)
+    fun text(key: String): String? = if (has(key) && !isNull(key)) optString(key) else null
+    val pages = (opt("pageCount") as? Number)?.takeIf { it.toDouble() % 1.0 == 0.0 }?.toInt()
+    return RawBookRecord(text("id"), text("title"), text("author"), text("category"), pages, text("notes"))
 }
 
 private fun ReadingSessionEntity.toDomain() = ReadingSession(id, bookId, pagesRead, durationMinutes, startedAt)
