@@ -28,8 +28,20 @@ data class ReadingSession(
     val startedAt: Long
 )
 
+/** Values stored in the "sort" preference. */
+object SortOrder {
+    const val TITLE = "TITLE"
+    const val AUTHOR = "AUTHOR"
+    /** Highest reading progress first. */
+    const val PROGRESS = "PROGRESS"
+    /** Order of the options on the settings screen. */
+    val ALL = listOf(TITLE, AUTHOR, PROGRESS)
+    /** Unknown or missing values (old versions, corrupted file) fall back to TITLE. */
+    fun normalize(value: String?): String = if (value != null && value in ALL) value else TITLE
+}
+
 data class UserPreferences(
-    val sort: String = "TITLE",
+    val sort: String = SortOrder.TITLE,
     val darkMode: Boolean = false,
     val showCompleted: Boolean = true
 )

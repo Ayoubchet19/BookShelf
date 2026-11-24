@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TrailLog Student</string>
+    <string name="app_name">BookShelf</string>
     <string name="all_trails">All trails</string>
     <string name="favorites">Favorites</string>
     <string name="settings">Settings</string>
@@ -95,4 +95,19 @@
     <string name="stats_category_details">%1$d book(s) · %2$d pages · %3$d min</string>
     <string name="stats_empty">No statistics yet. Record a reading session from a book to get started.</string>
     <string name="stats_loading">Loading statistics…</string>
+
+    <!-- Catalogue states -->
+    <string name="catalogue_empty">Your library is empty. Tap + to add your first book.</string>
+    <string name="catalogue_empty_filtered">No book matches your search or filters. Completed books may be hidden in Settings.</string>
+    <string name="catalogue_error">Could not load the catalogue. Please try again.</string>
+
+    <!-- Settings (Preferences DataStore) -->
+    <string name="pref_title">Settings</string>
+    <string name="pref_dark_mode">Dark mode</string>
+    <string name="pref_show_completed">Show completed books</string>
+    <string name="pref_sort">Sort the catalogue by</string>
+    <string name="pref_sort_title">Title</string>
+    <string name="pref_sort_author">Author</string>
+    <string name="pref_sort_progress">Reading progress (highest first)</string>
+    <string name="pref_saved_hint">Changes are saved automatically and kept after a restart.</string>
 </resources>
