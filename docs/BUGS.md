@@ -91,3 +91,50 @@ The instrumented suite (`BookRepositorySessionTest`, `ReadingSessionUiTest`) has
 not run to completion yet. After the crash fix, the emulator froze and then refused
 to start because drive C: was full ("Your device does not have enough disk space
 to run avd"). See `HANDOFF.md`.
+
+---
+
+# Bugs found during the "Forms & categories" work
+
+Branch: `feature/forms-categories`.
+
+## Bug 3: form errors disappeared after a rotation
+
+**Symptom.** In the add/edit book form, type a title, enter `0` pages and press
+"Save": the page error appears under the field. Rotate the device: the typed text
+is still there but the error is gone, even though the ViewModel still holds it.
+
+**How it was found.** The Espresso test `FormsCategoriesUiTest.formErrorsSurviveRecreation`
+failed at line 82, the check after `scenario.recreate()`. The check before the
+recreation had passed. The cause was then found by reading the lifecycle order (below).
+**To show it with the debugger** (for the demo):
+* put a breakpoint in the `doAfterTextChanged` lambda of `pages_input` (old code, in
+  `onCreate`) and rotate;
+* the breakpoint is hit with no user input. The call stack goes through
+  `Activity.onRestoreInstanceState` → `TextView.onRestoreInstanceState` → `setText`.
+
+**Cause.** The "clear the error when the user types" listeners were registered in
+`onCreate`. On recreation, the lifecycle order is `onCreate` → `onStart` (the
+`repeatOnLifecycle(STARTED)` collectors render the errors) → `onRestoreInstanceState`
+(the EditTexts get their text back, which fires `afterTextChanged`) → the listeners
+wipe the errors that were just rendered.
+
+**Fix.**
+* The listeners are registered in `onPostCreate`, which runs after
+  `onRestoreInstanceState`, in both `EditBookActivity` and `CategoriesActivity`.
+* They call `vm.clearError(field)` instead of touching the view, so the ViewModel and
+  the screen can no longer disagree.
+* The Espresso test now passes, and `renameModeAndErrorSurviveRecreation` covers the
+  same case on the categories screen.
+
+## Bug 4: deleting a category used by books crashed the app (prevented)
+
+**Cause.** `books.categoryId` has a foreign key with `onDelete = RESTRICT`. A plain
+`DELETE FROM categories` on a used category throws `SQLiteConstraintException`
+(`FOREIGN KEY constraint failed`, visible in Logcat) and kills the coroutine.
+
+**Fix.** `BookRepository.deleteCategory` counts the category's books inside a
+transaction first. If any book uses it, it throws `CategoryValidationException(IN_USE, n)`,
+and the screen shows "Cannot delete: n books use this category". The rule
+(`checkCategoryDeletion`) is covered by JUnit, and the repository behaviour by
+`CategoryAndFormRepositoryTest.categoryUsedByABookCannotBeDeleted`.

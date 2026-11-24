@@ -124,6 +124,65 @@ The first command needs no device; the second needs a running emulator.
 
 See `HANDOFF.md` for the verification status and `docs/BUGS.md` for the bugs found.
 
+## Book form & categories
+
+### How it works
+
+* **Add / edit book** (`EditBookActivity` + `EditBookViewModel`, XML layout
+  `activity_edit_book.xml`). It has Material `TextInputLayout` fields for title, author,
+  page count and notes (with character counters), plus a category dropdown (`Spinner`)
+  filled live from Room.
+  * Every invalid field shows its own error under the field; all errors are reported at once.
+  * "Manage categories" opens the categories screen. A category created there appears
+    in the dropdown straight away (Flow).
+  * In edit mode, the screen says how many pages are already read.
+  * State survives rotation: the loaded book, the picked category and the errors live in
+    the ViewModel, and the typed text is restored by the views.
+* **Categories** (`CategoriesActivity` + `CategoriesViewModel` + `CategoryAdapter`). It is
+  a complete CRUD:
+  * create, with validation;
+  * a `RecyclerView` list showing the number of books per category, with an empty state;
+  * rename (the same field switches to "Rename");
+  * delete, with a confirmation dialog.
+  The rename mode, the errors and a pending delete dialog survive rotation.
+
+### Business rules (`domain/BookForm.kt`, `domain/CategoryRules.kt`)
+
+* Title (1..120 characters) and author (1..80) are required. Spaces are trimmed and
+  collapsed. Notes are optional (500 characters max).
+* The page count must be a whole number from 1 to 20,000, and it **cannot be lower than
+  the pages already read**.
+* The chosen category must still exist (checked again in the repository).
+* `BookRepository.saveBookForm` validates and writes in one transaction. On edit, it
+  re-reads the book from Room, so favorite and reading progress are never overwritten by
+  a stale copy. `isCompleted` is recomputed for the new page count.
+* Category names: 2..30 characters and unique, ignoring case and extra spaces.
+* A category keeps its id when it is renamed, so all its books follow the new name.
+  A new category whose id is still held by a renamed one gets a suffix (`fantasy_2`).
+* A category used by books cannot be deleted (`IN_USE`). This avoids the
+  `ON DELETE RESTRICT` foreign-key crash.
+
+### Tests
+
+* JUnit:
+  * `BookFormTest`: 9 tests on form validation;
+  * `CategoryRulesTest`: 8 tests on names, duplicates, ids and deletion.
+* Room in-memory, `CategoryAndFormRepositoryTest` (6 tests):
+  * category CRUD;
+  * duplicates;
+  * deleting a category in use;
+  * a rename is seen by the category's books;
+  * editing a book keeps its progress and favorite.
+* Espresso, `FormsCategoriesUiTest` (6 tests):
+  * one error per empty required field;
+  * form errors survive `recreate()`;
+  * a valid form creates the book;
+  * add, rename and delete a category;
+  * a duplicate category shows an error;
+  * rename mode survives `recreate()`.
+
+See `docs/BUGS.md` bugs 3 and 4.
+
 ## Team contributions
 
 Use the shared repository with one branch per contributor and integrate changes
@@ -137,3 +196,9 @@ through pull requests. Add each member's name and contribution before submission
   * `StatisticsViewModel` and the new statistics screen;
   * unit and Espresso tests, `docs/BUGS.md` and `HANDOFF.md`;
   * a fix for a startup crash in `BookshelfApplication`.
+* **Book form & categories** (branch `feature/forms-categories`):
+  * validated add/edit form with per-field errors and a category dropdown;
+  * categories CRUD (create, rename, delete with confirmation, book count);
+  * business rules in `domain/BookForm.kt` and `domain/CategoryRules.kt`;
+  * JUnit, Room and Espresso tests;
+  * bugs 3 and 4 in `docs/BUGS.md`.
