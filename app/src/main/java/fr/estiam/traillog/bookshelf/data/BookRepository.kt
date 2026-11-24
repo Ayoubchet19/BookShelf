@@ -9,6 +9,16 @@ import androidx.paging.PagingState
 import androidx.paging.LoadState
 import androidx.paging.map
 import androidx.room.withTransaction
+import fr.estiam.traillog.bookshelf.domain.BookFormInput
+import fr.estiam.traillog.bookshelf.domain.BookFormResult
+import fr.estiam.traillog.bookshelf.domain.BookFormValidationException
+import fr.estiam.traillog.bookshelf.domain.CategoryError
+import fr.estiam.traillog.bookshelf.domain.CategoryValidationException
+import fr.estiam.traillog.bookshelf.domain.checkCategoryDeletion
+import fr.estiam.traillog.bookshelf.domain.newCategoryId
+import fr.estiam.traillog.bookshelf.domain.normalizeCategoryName
+import fr.estiam.traillog.bookshelf.domain.validateBookForm
+import fr.estiam.traillog.bookshelf.domain.validateCategoryName
 import fr.estiam.traillog.bookshelf.domain.SessionError
 import fr.estiam.traillog.bookshelf.domain.SessionValidationException
 import fr.estiam.traillog.bookshelf.domain.computeProgress
@@ -16,6 +26,7 @@ import fr.estiam.traillog.bookshelf.domain.remainingPages
 import fr.estiam.traillog.bookshelf.domain.validateSession
 import fr.estiam.traillog.bookshelf.model.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import org.json.JSONArray
 import java.util.UUID
@@ -52,6 +63,88 @@ class BookRepository(private val db: BookDatabase, private val context: Context)
         require(name.isNotBlank()) { "Category name is required" }
         db.categories().insert(CategoryEntity(name.trim().lowercase().replace(" ", "_"), name.trim()))
     }
+
+    // ---------------------------------------------------------------- Categories CRUD
+
+    /** Categories with their book count, live (categories screen). */
+    val categorySummaries: Flow<List<CategorySummary>> =
+        db.categories().observeWithBookCount().map { rows -> rows.map { CategorySummary(it.id, it.name, it.bookCount) } }
+
+    /**
+     * Creates a category after checking its name (required, 2..30 chars, no duplicate).
+     * @throws CategoryValidationException when the name is rejected (nothing is written).
+     * @return the id of the new category.
+     */
+    suspend fun createCategory(name: String): String = db.withTransaction {
+        val existing = db.categories().listAll()
+        validateCategoryName(name, existing.map { Category(it.id, it.name) })?.let { throw CategoryValidationException(it) }
+        val id = newCategoryId(name, existing.map { it.id }.toSet())
+        db.categories().insert(CategoryEntity(id, normalizeCategoryName(name)))
+        id
+    }
+
+    /**
+     * Renames a category. Its id is kept, so every book of the category follows the new name.
+     * @throws CategoryValidationException when the category is missing or the name is rejected.
+     */
+    suspend fun renameCategory(id: String, newName: String) {
+        db.withTransaction {
+            val current = db.categories().findById(id) ?: throw CategoryValidationException(CategoryError.NOT_FOUND)
+            val existing = db.categories().listAll().map { Category(it.id, it.name) }
+            validateCategoryName(newName, existing, editingId = id)?.let { throw CategoryValidationException(it) }
+            db.categories().update(current.copy(name = normalizeCategoryName(newName)))
+        }
+    }
+
+    /**
+     * Deletes a category only when no book uses it (the books table has an ON DELETE RESTRICT
+     * foreign key: deleting a used category would otherwise crash with SQLiteConstraintException).
+     * @throws CategoryValidationException NOT_FOUND, or IN_USE with the number of books.
+     */
+    suspend fun deleteCategory(id: String) {
+        db.withTransaction {
+            db.categories().findById(id) ?: throw CategoryValidationException(CategoryError.NOT_FOUND)
+            val count = db.categories().countBooks(id)
+            checkCategoryDeletion(count)?.let { throw CategoryValidationException(it, count) }
+            db.categories().deleteById(id)
+        }
+    }
+
+    // ---------------------------------------------------------------- Book form
+
+    /**
+     * Saves the add/edit book form in one transaction.
+     * - The input is validated field by field (domain/BookForm.kt).
+     * - On edit, the book is re-read from the database: favorite and reading progress are
+     *   never overwritten by a stale copy, and the page count cannot go below the pages
+     *   already read. Completion is recomputed for the new page count.
+     * @param bookId null to create a new book.
+     * @throws BookFormValidationException with one error per invalid field (nothing is written).
+     * @return the id of the saved book.
+     */
+    suspend fun saveBookForm(bookId: String?, input: BookFormInput): String = db.withTransaction {
+        val current = bookId?.let { db.books().findById(it) }
+        val categoryIds = db.categories().listAll().map { it.id }.toSet()
+        val form = when (val result = validateBookForm(input, current?.pagesRead ?: 0, categoryIds)) {
+            is BookFormResult.Invalid -> throw BookFormValidationException(result.errors)
+            is BookFormResult.Valid -> result.value
+        }
+        val id = current?.id ?: bookId ?: UUID.randomUUID().toString()
+        val pagesRead = current?.pagesRead ?: 0
+        db.books().upsert(
+            BookEntity(
+                id = id, title = form.title, author = form.author, categoryId = form.categoryId,
+                pageCount = form.pageCount, pagesRead = pagesRead,
+                isFavorite = current?.isFavorite ?: false,
+                isCompleted = pagesRead >= form.pageCount,
+                notes = form.notes
+            )
+        )
+        id
+    }
+
+    /** One-shot read of a book (form pre-filling). */
+    suspend fun findBook(id: String): Book? = db.books().observeById(id).first()?.toDomainBook()
 
     /**
      * Records a reading session and updates the book's progress in one transaction.

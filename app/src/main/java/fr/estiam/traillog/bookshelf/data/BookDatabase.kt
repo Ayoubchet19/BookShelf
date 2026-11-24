@@ -77,7 +77,22 @@ interface CategoryDao {
     @Query("SELECT * FROM categories ORDER BY name COLLATE NOCASE") fun observeAll(): Flow<List<CategoryEntity>>
     @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insert(category: CategoryEntity)
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1") suspend fun findById(id: String): CategoryEntity?
+
+    /** Snapshot used to validate names (duplicates) inside transactions. */
+    @Query("SELECT * FROM categories") suspend fun listAll(): List<CategoryEntity>
+    @Update suspend fun update(category: CategoryEntity)
+    @Query("DELETE FROM categories WHERE id = :id") suspend fun deleteById(id: String)
+    @Query("SELECT COUNT(*) FROM books WHERE categoryId = :id") suspend fun countBooks(id: String): Int
+
+    /** Categories with their number of books, refreshed when a book or a category changes. */
+    @Query("""SELECT c.id AS id, c.name AS name, COUNT(b.id) AS bookCount
+        FROM categories c LEFT JOIN books b ON b.categoryId = c.id
+        GROUP BY c.id ORDER BY c.name COLLATE NOCASE""")
+    fun observeWithBookCount(): Flow<List<CategoryWithBookCount>>
 }
+
+/** Row of [CategoryDao.observeWithBookCount]. */
+data class CategoryWithBookCount(val id: String, val name: String, val bookCount: Int)
 
 @Dao
 interface ReadingSessionDao {
