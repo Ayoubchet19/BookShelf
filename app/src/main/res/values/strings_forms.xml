@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the book form and categories screens (kept apart from strings.xml to avoid merge conflicts). -->
+<resources>
+    <!-- Book form -->
+    <string name="form_title_add">Add a book</string>
+    <string name="form_title_edit">Edit book</string>
+    <string name="form_book_title_hint">Title</string>
+    <string name="form_author_hint">Author</string>
+    <string name="form_pages_hint">Page count</string>
+    <string name="form_category_label">Category</string>
+    <string name="form_notes_hint">Notes (optional)</string>
+    <string name="form_manage_categories">Manage categories</string>
+    <string name="form_no_category">No category yet: create one first</string>
+    <string name="form_save">Save book</string>
+    <string name="form_cancel">Cancel</string>
+    <string name="form_saved">Book saved</string>
+    <string name="form_book_missing">This book no longer exists</string>
+    <string name="form_pages_read_info">%1$d pages already read: the page count cannot be lower</string>
+
+    <string name="form_error_title_required">The title is required</string>
+    <string name="form_error_title_too_long">The title must be %1$d characters or fewer</string>
+    <string name="form_error_author_required">The author is required</string>
+    <string name="form_error_author_too_long">The author must be %1$d characters or fewer</string>
+    <string name="form_error_pages_required">The page count is required</string>
+    <string name="form_error_pages_number">Enter a whole number</string>
+    <string name="form_error_pages_range">Enter a number between 1 and %1$d</string>
+    <string name="form_error_pages_below_read">Must be at least %1$d (pages already read)</string>
+    <string name="form_error_category_required">Choose a category</string>
+    <string name="form_error_category_missing">This category no longer exists</string>
+    <string name="form_error_notes_too_long">Notes must be %1$d characters or fewer</string>
+
+    <!-- Categories -->
+    <string name="categories_title">Categories</string>
+    <string name="category_new_hint">New category</string>
+    <string name="category_rename_hint">New name</string>
+    <string name="category_add">Add category</string>
+    <string name="category_rename">Rename</string>
+    <string name="category_cancel">Cancel</string>
+    <string name="category_edit">Edit</string>
+    <string name="category_delete">Delete</string>
+    <string name="category_empty">No categories yet. Add your first one above.</string>
+    <plurals name="category_book_count">
+        <item quantity="one">%1$d book</item>
+        <item quantity="other">%1$d books</item>
+    </plurals>
+    <string name="category_created">Category added</string>
+    <string name="category_renamed">Category renamed</string>
+    <string name="category_deleted">Category deleted</string>
+    <string name="category_delete_title">Delete category?</string>
+    <string name="category_delete_message">"%1$s" will be removed permanently.</string>
+    <string name="category_editing">Renaming "%1$s"</string>
+
+    <string name="category_error_required">The name is required</string>
+    <string name="category_error_too_short">At least %1$d characters</string>
+    <string name="category_error_too_long">%1$d characters maximum</string>
+    <string name="category_error_duplicate">This category already exists</string>
+    <string name="category_error_not_found">This category no longer exists</string>
+    <plurals name="category_error_in_use">
+        <item quantity="one">Cannot delete: %1$d book uses this category</item>
+        <item quantity="other">Cannot delete: %1$d books use this category</item>
+    </plurals>
+</resources>
