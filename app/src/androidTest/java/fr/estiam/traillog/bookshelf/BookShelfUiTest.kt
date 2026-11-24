@@ -5,6 +5,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.action.ViewActions.typeText
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.withHint
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import fr.estiam.traillog.R
@@ -29,6 +32,7 @@ class BookShelfUiTest {
 
     @Test fun categoriesButtonOpensCategoriesScreen() {
         onView(withId(R.id.categories_button)).perform(click())
-        onView(withText(containsString("New category"))).check { view, _ -> check(view.isShown) }
+        // "New category" is the EditText's hint, not its text: withText() never matched it.
+        onView(withHint(containsString("New category"))).check(matches(isDisplayed()))
     }
 }
