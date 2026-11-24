@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Formulaire livre -->
+    <string name="form_title_add">Ajouter un livre</string>
+    <string name="form_title_edit">Modifier le livre</string>
+    <string name="form_book_title_hint">Titre</string>
+    <string name="form_author_hint">Auteur</string>
+    <string name="form_pages_hint">Nombre de pages</string>
+    <string name="form_category_label">Catégorie</string>
+    <string name="form_notes_hint">Notes (facultatif)</string>
+    <string name="form_manage_categories">Gérer les catégories</string>
+    <string name="form_no_category">Aucune catégorie : créez-en une d\'abord</string>
+    <string name="form_save">Enregistrer le livre</string>
+    <string name="form_cancel">Annuler</string>
+    <string name="form_saved">Livre enregistré</string>
+    <string name="form_book_missing">Ce livre n\'existe plus</string>
+    <string name="form_pages_read_info">%1$d pages déjà lues : le nombre de pages ne peut pas être inférieur</string>
+
+    <string name="form_error_title_required">Le titre est obligatoire</string>
+    <string name="form_error_title_too_long">Le titre doit faire %1$d caractères maximum</string>
+    <string name="form_error_author_required">L\'auteur est obligatoire</string>
+    <string name="form_error_author_too_long">L\'auteur doit faire %1$d caractères maximum</string>
+    <string name="form_error_pages_required">Le nombre de pages est obligatoire</string>
+    <string name="form_error_pages_number">Saisissez un nombre entier</string>
+    <string name="form_error_pages_range">Saisissez un nombre entre 1 et %1$d</string>
+    <string name="form_error_pages_below_read">Au moins %1$d (pages déjà lues)</string>
+    <string name="form_error_category_required">Choisissez une catégorie</string>
+    <string name="form_error_category_missing">Cette catégorie n\'existe plus</string>
+    <string name="form_error_notes_too_long">Les notes doivent faire %1$d caractères maximum</string>
+
+    <!-- Catégories -->
+    <string name="categories_title">Catégories</string>
+    <string name="category_new_hint">Nouvelle catégorie</string>
+    <string name="category_rename_hint">Nouveau nom</string>
+    <string name="category_add">Ajouter la catégorie</string>
+    <string name="category_rename">Renommer</string>
+    <string name="category_cancel">Annuler</string>
+    <string name="category_edit">Modifier</string>
+    <string name="category_delete">Supprimer</string>
+    <string name="category_empty">Aucune catégorie. Ajoutez la première ci-dessus.</string>
+    <plurals name="category_book_count">
+        <item quantity="one">%1$d livre</item>
+        <item quantity="other">%1$d livres</item>
+    </plurals>
+    <string name="category_created">Catégorie ajoutée</string>
+    <string name="category_renamed">Catégorie renommée</string>
+    <string name="category_deleted">Catégorie supprimée</string>
+    <string name="category_delete_title">Supprimer la catégorie ?</string>
+    <string name="category_delete_message">« %1$s » sera supprimée définitivement.</string>
+    <string name="category_editing">Renommage de « %1$s »</string>
+
+    <string name="category_error_required">Le nom est obligatoire</string>
+    <string name="category_error_too_short">Au moins %1$d caractères</string>
+    <string name="category_error_too_long">%1$d caractères maximum</string>
+    <string name="category_error_duplicate">Cette catégorie existe déjà</string>
+    <string name="category_error_not_found">Cette catégorie n\'existe plus</string>
+    <plurals name="category_error_in_use">
+        <item quantity="one">Suppression impossible : %1$d livre utilise cette catégorie</item>
+        <item quantity="other">Suppression impossible : %1$d livres utilisent cette catégorie</item>
+    </plurals>
+</resources>
