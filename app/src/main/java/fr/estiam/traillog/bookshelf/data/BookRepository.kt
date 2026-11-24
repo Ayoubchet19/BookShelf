@@ -9,6 +9,17 @@ import androidx.paging.PagingState
 import androidx.paging.LoadState
 import androidx.paging.map
 import androidx.room.withTransaction
+import fr.estiam.traillog.bookshelf.domain.SessionError
+import fr.estiam.traillog.bookshelf.domain.SessionValidationException
+import fr.estiam.traillog.bookshelf.domain.computeProgress
+import fr.estiam.traillog.bookshelf.domain.remainingPages
+import fr.estiam.traillog.bookshelf.domain.validateSession
+import fr.estiam.traillog.bookshelf.model.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import org.json.JSONArray
+import java.util.UUID
+// Book form & categories
 import fr.estiam.traillog.bookshelf.domain.BookFormInput
 import fr.estiam.traillog.bookshelf.domain.BookFormResult
 import fr.estiam.traillog.bookshelf.domain.BookFormValidationException
@@ -19,17 +30,7 @@ import fr.estiam.traillog.bookshelf.domain.newCategoryId
 import fr.estiam.traillog.bookshelf.domain.normalizeCategoryName
 import fr.estiam.traillog.bookshelf.domain.validateBookForm
 import fr.estiam.traillog.bookshelf.domain.validateCategoryName
-import fr.estiam.traillog.bookshelf.domain.SessionError
-import fr.estiam.traillog.bookshelf.domain.SessionValidationException
-import fr.estiam.traillog.bookshelf.domain.computeProgress
-import fr.estiam.traillog.bookshelf.domain.remainingPages
-import fr.estiam.traillog.bookshelf.domain.validateSession
-import fr.estiam.traillog.bookshelf.model.*
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import org.json.JSONArray
-import java.util.UUID
 
 class BookRepository(private val db: BookDatabase, private val context: Context) {
     val categories: Flow<List<Category>> = db.categories().observeAll().map { it.map { c -> Category(c.id, c.name) } }
